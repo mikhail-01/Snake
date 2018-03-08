@@ -1,0 +1,211 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="utf-8">
+</head>
+
+<body id="bsnake">
+
+<div id="snake"></div>
+
+<br><br>
+
+<div id="text"></div>
+
+<script>
+
+'use strict'
+
+const MAX_X = 20;
+const MAX_Y = 20;
+const FOOD_NUM = 3;
+const PAUSE = 100;
+
+var snake;
+var direction;
+var food;
+var gameOver = false;
+
+function showText(s) {
+	document.getElementById('text').innerHTML = s;
+}
+
+function getCellName(x, y) {
+	return 'td' + y + '_' + x;
+}
+
+function drawFood() {
+	var f = food[food.length-1];
+	var name = getCellName(f[0], f[1]);
+	document.getElementById(name).innerHTML = '*';
+}
+
+function drawHead() {
+	document.getElementById(getCellName(snake[0][0], snake[0][1]))
+		.innerHTML = 'O';
+}
+
+function drawSpace(x, y) {
+	document.getElementById(getCellName(x, y)).innerHTML = '.';
+}
+
+function drawDeadSnake() {
+	for (var i = 0; i < snake.length; i++) {
+		var name = getCellName(snake[i][0], snake[i][1]);
+		document.getElementById(name).innerHTML = '+';
+	}
+}
+
+function setScreen() {
+	var code = '<table>\n';
+	for (var y = 1; y <= MAX_Y; y++) {
+		code += '<tr>\n';
+		for (var x = 1; x <= MAX_X; x++) {
+			code += '<td id="td' + y + '_' + x
+				+ '" width=20px height=20px align=center>.</td>\n';
+		}
+		code += '</tr>\n';
+	}
+	code +='</table>\n';
+	document.getElementById('snake').innerHTML = code;
+	showText('SCORE: 0');
+}
+
+function isEmptyCell(x, y) {
+	for (var i = 0; i < snake.length; i++) {
+		if (x == snake[i][0] && y == snake[i][1]) return false;
+	}
+	for (var i = 0; i < food.length; i++) {
+		if (x == food[i][0] && y == food[i][1]) return false;
+	}
+	return true;
+}
+
+function setFood(n) {
+	if (!n) n = FOOD_NUM;
+	for (var i = 0; i < n; i++) {
+		do {
+			var x = ~~(Math.random()*MAX_X) + 1;
+			var y = ~~(Math.random()*MAX_Y) + 1;
+		} while(!isEmptyCell(x, y));
+		food.push([x, y]);
+		drawFood();
+	}
+}
+
+function start() {
+	snake = [[~~(MAX_X/2), ~~(MAX_Y/2)]];
+	direction = [0, 1];
+	food = [];
+	setFood();
+	drawHead();
+//	console.log(snake);
+//	console.log(direction);
+//	console.log(food);
+}
+
+function getNextCoord(i, maxCoord) {
+	var res = snake[0][i] + direction[i];
+	if (res > maxCoord) return 1;
+	if (res < 1) return maxCoord;
+	return res;
+}
+
+function isSnake(x, y) {
+	for (var i = 3; i < snake.length; i++) {
+		if (x == snake[i][0] && y == snake[i][1]) return true;
+	}
+	return false;
+}
+
+function isFood(x, y) {
+	for (var i = 0; i < food.length; i++) {
+		if (x == food[i][0] && y == food[i][1]) return true;
+	}
+	return false;
+}
+
+function shiftHead(x, y) {
+	snake.unshift([x, y]);
+	drawHead();
+}
+
+function shiftTail() {
+	var tail = snake.pop();
+	drawSpace(tail[0], tail[1]);
+}
+
+function eatFood(x, y) {
+	for (var i = 0; i < food.length; i++) {
+		if (food[i][0] == x && food[i][1] == y) break;		
+	}
+	food.splice(i, 1);
+	setFood(1);
+	drawFood();
+	showText('SCORE: ' + (snake.length-1));
+}
+
+function moveSnake() {
+	var nextX = getNextCoord(0, MAX_X);
+	var nextY = getNextCoord(1, MAX_Y);
+	if (isSnake(nextX, nextY)) {
+		gameOver = true;
+		return;
+	}
+	shiftHead(nextX, nextY);
+	if (!isFood(nextX, nextY)) {
+		shiftTail();
+	} else {
+		eatFood(nextX, nextY);
+	}		
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function loop() {
+	do {
+		moveSnake();
+		await sleep(PAUSE);
+	} while (!gameOver);
+	drawDeadSnake();
+	showText('SCORE: ' + (snake.length-1) + '<br><br>' +
+		'+&nbsp;+&nbsp;+&nbsp;&nbsp;G&nbsp;A&nbsp;' +
+		'M&nbsp;E&nbsp;&nbsp;&nbsp;O&nbsp;V&nbsp;E&nbsp;R' +
+		'&nbsp;&nbsp;+&nbsp;+&nbsp;+');
+}
+
+function handleKey(e) {
+	switch (e.keyCode) {
+		case 37:
+			if (direction[0] != 1) direction = [-1, 0];
+			break;
+		case 38:
+			if (direction[1] != 1) direction = [0, -1];
+			break;
+		case 39:
+			if (direction[0] != -1) direction = [1, 0];
+			break;
+		case 40:
+			if (direction[1] != -1) direction = [0, 1];
+			break;
+	}
+}
+
+function setEvents() {
+	var bsnake = document.getElementById('bsnake');
+	bsnake.onkeydown = handleKey;
+}
+
+setScreen();
+setEvents();
+start();
+loop();
+
+</script>
+
+</body>
+
+</html>
